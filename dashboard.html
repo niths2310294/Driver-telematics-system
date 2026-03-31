@@ -1,271 +1,95 @@
+
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Driver Behavior Monitor</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+  <title>Driver Telematics</title>
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Inter', sans-serif; background: #f4f6f9; color: #1a202c; font-size: 14px; }
-
-    header {
-      background: #fff; border-bottom: 1px solid #e8ecf0;
-      padding: 0 24px; height: 52px;
-      display: flex; align-items: center; justify-content: space-between;
-    }
-    .brand { font-size: .95rem; font-weight: 600; }
-    .live-pill {
-      display: flex; align-items: center; gap: 6px;
-      padding: 4px 12px; background: #f0fdf4;
-      border: 1px solid #bbf7d0; border-radius: 100px;
-      font-size: .72rem; color: #16a34a; font-weight: 600;
-    }
-    .live-dot { width:6px; height:6px; background:#16a34a; border-radius:50%; animation: blink 2s infinite; }
-    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
-
-    .page { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
-
-    /* BEHAVIOR */
-    .behavior-bar {
-      background: #fff; border: 1px solid #e8ecf0; border-radius: 12px;
-      padding: 14px 18px; display: flex; align-items: center; justify-content: space-between;
-    }
-    .beh-left { display: flex; align-items: center; gap: 12px; }
-    .beh-icon { width:36px; height:36px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:1.1rem; }
-    .beh-icon.normal  { background:#f0fdf4; }
-    .beh-icon.warning { background:#fff7ed; }
-    .beh-icon.danger  { background:#fef2f2; }
-    .beh-lbl { font-size:.6rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:#94a3b8; }
-    .beh-val { font-size:1.2rem; font-weight:700; margin-top:2px; }
-    .beh-val.normal  { color:#16a34a; }
-    .beh-val.warning { color:#ea580c; }
-    .beh-val.danger  { color:#dc2626; }
-    .beh-ts { font-size:.8rem; color:#94a3b8; }
-
-    /* METRICS */
-    .metrics { display: grid; grid-template-columns: repeat(5,1fr); gap: 10px; }
-    .card { background:#fff; border:1px solid #e8ecf0; border-radius:12px; padding:14px 16px; }
-    .clbl { font-size:.6rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:#94a3b8; margin-bottom:8px; }
-    .cval { font-size:1.5rem; font-weight:600; line-height:1; }
-    .cval .unit { font-size:.72rem; font-weight:500; color:#94a3b8; margin-left:2px; }
-    .cbar { height:3px; border-radius:2px; margin-top:10px; }
-    .blue   { background:#38bdf8; }
-    .purple { background:#818cf8; }
-    .orange { background:#fb923c; }
-    .green  { background:#10b981; }
-    .gray   { background:#cbd5e1; }
-
-    /* SPEEDOMETER */
-    .speedo-row {
-      background: #fff; border: 1px solid #e8ecf0; border-radius: 12px;
-      padding: 14px 20px; display: flex; align-items: center; gap: 28px;
-    }
-    .speedo-lbl { font-size:.6rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:#94a3b8; margin-bottom:6px; }
-    .legend { display:flex; flex-direction:column; gap:7px; }
-    .leg { display:flex; align-items:center; gap:7px; font-size:.72rem; color:#4a5568; }
-    .leg-dot { width:10px; height:10px; border-radius:2px; flex-shrink:0; }
-
-    /* BOTTOM */
-    .bottom { display: grid; grid-template-columns: 1fr 280px; gap: 12px; }
-
-    .map-card { background:#fff; border:1px solid #e8ecf0; border-radius:12px; overflow:hidden; }
-    .card-hdr {
-      padding: 10px 14px; border-bottom: 1px solid #f1f5f9;
-      display: flex; justify-content: space-between; align-items: center;
-      font-size: .82rem; font-weight: 600;
-    }
-    .card-hdr .coords { font-size:.72rem; color:#94a3b8; }
-
-    #map { height: 360px; }
-
-    .log-card { background:#fff; border:1px solid #e8ecf0; border-radius:12px; display:flex; flex-direction:column; overflow:hidden; }
-    #log-list { flex:1; overflow-y:auto; }
-    #log-list::-webkit-scrollbar { width:3px; }
-    #log-list::-webkit-scrollbar-thumb { background:#e2e8f0; }
-    .log-row {
-      padding: 7px 14px; border-bottom: 1px solid #f8fafc;
-      display: flex; align-items: center; gap: 8px; font-size: .7rem;
-      animation: fi .2s ease;
-    }
-    @keyframes fi { from{opacity:0} to{opacity:1} }
-    .log-ts  { color:#cbd5e1; white-space:nowrap; flex-shrink:0; }
-    .log-spd { color:#64748b; width:52px; flex-shrink:0; }
-    .log-badge { font-size:.62rem; font-weight:700; padding:2px 7px; border-radius:4px; }
-    .lb-normal  { background:#f0fdf4; color:#16a34a; }
-    .lb-warning { background:#fff7ed; color:#ea580c; }
-    .lb-danger  { background:#fef2f2; color:#dc2626; }
-  </style>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 </head>
-<body>
 
-<header>
-  <div class="brand">🚗 Driver Behavior Monitor</div>
-  <div class="live-pill"><span class="live-dot"></span> Live</div>
-</header>
+<body style="font-family: Arial; text-align:center;">
 
-<div class="page">
+<h1>🚗 Driver Telematics Dashboard</h1>
 
-  <div class="behavior-bar">
-    <div class="beh-left">
-      <div class="beh-icon normal" id="beh-icon">✅</div>
-      <div>
-        <div class="beh-lbl">Driving Behavior</div>
-        <div class="beh-val normal" id="beh-val">NORMAL</div>
-      </div>
-    </div>
-    <div class="beh-ts" id="hdr-ts">--:--:--</div>
-  </div>
+<h3>Live Data</h3>
+<p id="time"></p>
+<p id="speed"></p>
+<p id="coords"></p>
 
-  <div class="metrics">
-    <div class="card"><div class="clbl">Accel X</div><div class="cval" id="ax-val">0.00</div><div class="cbar blue"></div></div>
-    <div class="card"><div class="clbl">Accel Y</div><div class="cval" id="ay-val">0.00</div><div class="cbar purple"></div></div>
-    <div class="card"><div class="clbl">Accel Z</div><div class="cval" id="az-val">0.00</div><div class="cbar orange"></div></div>
-    <div class="card"><div class="clbl">Speed</div><div class="cval"><span id="spd-val">0.0</span><span class="unit">km/h</span></div><div class="cbar green"></div></div>
-    <div class="card"><div class="clbl">Last Update</div><div class="cval" style="font-size:1rem;" id="ts-val">--:--:--</div><div class="cbar gray"></div></div>
-  </div>
+<div id="map" style="height:300px;"></div>
 
-  <div class="speedo-row">
-    <div>
-      <div class="speedo-lbl">Speedometer</div>
-      <svg viewBox="0 0 260 145" width="260" style="display:block;">
-        <path d="M30 130 A100 100 0 0 1 230 130" stroke="#f1f5f9" stroke-width="14" fill="none" stroke-linecap="round"/>
-        <path id="spd-arc" d="M30 130 A100 100 0 0 1 230 130"
-          stroke="#10b981" stroke-width="14" fill="none" stroke-linecap="round"
-          stroke-dasharray="314" stroke-dashoffset="314"
-          style="transition:stroke-dashoffset .5s ease,stroke .4s;"/>
-        <circle cx="130" cy="130" r="5" fill="#1a202c"/>
-        <text id="spd-big" x="130" y="115" text-anchor="middle" font-size="38" font-weight="700" fill="#1a202c" font-family="Inter,sans-serif">0</text>
-        <text x="130" y="132" text-anchor="middle" font-size="11" fill="#94a3b8" font-family="Inter,sans-serif">km/h</text>
-        <text x="28"  y="145" text-anchor="middle" font-size="9" fill="#cbd5e1" font-family="Inter,sans-serif">0</text>
-        <text x="232" y="145" text-anchor="middle" font-size="9" fill="#cbd5e1" font-family="Inter,sans-serif">160</text>
-      </svg>
-    </div>
-    <div class="legend">
-      <div class="leg"><span class="leg-dot" style="background:#10b981"></span> Normal &lt; 60 km/h</div>
-      <div class="leg"><span class="leg-dot" style="background:#f59e0b"></span> Caution 60–100 km/h</div>
-      <div class="leg"><span class="leg-dot" style="background:#ef4444"></span> Fast &gt; 100 km/h</div>
-    </div>
-  </div>
-
-  <div class="bottom">
-
-    <div class="map-card">
-      <div class="card-hdr">
-        <span>📍 Live Location</span>
-        <span class="coords" id="map-coords">—</span>
-      </div>
-      <div id="map"></div>
-    </div>
-
-    <div class="log-card">
-      <div class="card-hdr">📋 Event Log</div>
-      <div id="log-list">
-        <div class="log-row">
-          <span class="log-ts">--:--:--</span>
-          <span class="log-spd" style="color:#cbd5e1;">—</span>
-          <span class="log-badge lb-normal">System started</span>
-        </div>
-      </div>
-    </div>
-
-  </div>
-</div>
+<h3>📜 Trip History</h3>
+<div id="tripLogs"></div>
 
 <script>
-  /* MAP — exact same pattern as reference */
-  var map = L.map('map').setView([13.0827, 80.2707], 13);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-  var marker = L.marker([13.0827, 80.2707]).addTo(map);
-  var path = [];
-  var line = L.polyline(path, { color: '#38bdf8', weight: 2.5 }).addTo(map);
+// =========================
+// MAP SETUP
+// =========================
+var map = L.map('map').setView([13.0827, 80.2707], 13);
 
-  function updateMap(lat, lon) {
-  lat = parseFloat(lat);
-  lon = parseFloat(lon);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-  if (isNaN(lat) || isNaN(lon)) return;
+var marker = L.marker([13.0827, 80.2707]).addTo(map);
 
-  marker.setLatLng([lat, lon]);
-  path.push([lat, lon]);
-  line.setLatLngs(path);
-  map.panTo([lat, lon]);
-
-  document.getElementById('map-coords').textContent =
-    lat.toFixed(4) + ' , ' + lon.toFixed(4);
-}
-
-  /* SPEEDOMETER */
-  function updateSpeedo(s) {
-    var pct = Math.min(s / 160, 1);
-    var arc = document.getElementById('spd-arc');
-    arc.style.strokeDashoffset = 314 * (1 - pct);
-    arc.style.stroke = s > 100 ? '#ef4444' : s > 60 ? '#f59e0b' : '#10b981';
-    document.getElementById('spd-big').textContent = Math.round(s);
-  }
-
-  /* BEHAVIOR */
-  var ICONS = { Normal:'✅', Warning:'⚠️', Aggressive:'🚨' };
-  var CLS   = { Normal:'normal', Warning:'warning', Aggressive:'danger' };
-
-  function updateBehavior(b) {
-    var cls = CLS[b] || 'normal';
-    var icon = document.getElementById('beh-icon');
-    var val  = document.getElementById('beh-val');
-    icon.className = 'beh-icon ' + cls;
-    icon.textContent = ICONS[b] || '✅';
-    val.className = 'beh-val ' + cls;
-    val.textContent = b.toUpperCase();
-  }
-
-  /* LOG */
-  function addLog(ts, spd, pred) {
-    var list = document.getElementById('log-list');
-    var cls  = CLS[pred] || 'normal';
-    var row  = document.createElement('div');
-    row.className = 'log-row';
-    row.innerHTML =
-      '<span class="log-ts">' + ts + '</span>' +
-      '<span class="log-spd">' + spd.toFixed(1) + ' km/h</span>' +
-      '<span class="log-badge lb-' + cls + '">' + pred + '</span>';
-    list.prepend(row);
-    while (list.children.length > 80) list.removeChild(list.lastChild);
-  }
-
-  /* FETCH */
-  function fetchData() {
+// =========================
+// LIVE DATA
+// =========================
+function fetchData() {
   fetch('/data')
     .then(r => r.json())
     .then(d => {
 
       let lat = parseFloat(d.lat);
       let lon = parseFloat(d.lon);
-      let spd = parseFloat(d.speed) || 0;
+      let spd = parseFloat(d.speed);
 
-      document.getElementById('hdr-ts').textContent = d.timestamp;
-      document.getElementById('ts-val').textContent  = d.timestamp;
-      document.getElementById('spd-val').textContent = spd.toFixed(1);
+      document.getElementById("time").innerText =
+        "Time: " + d.timestamp;
 
-      document.getElementById('ax-val').textContent =
-        parseFloat(d.meanX).toFixed(2);
+      document.getElementById("speed").innerText =
+        "Speed: " + spd.toFixed(1) + " km/h";
 
-      document.getElementById('ay-val').textContent =
-        parseFloat(d.meanY).toFixed(2);
+      document.getElementById("coords").innerText =
+        "Lat: " + lat.toFixed(4) + " Lon: " + lon.toFixed(4);
 
-      document.getElementById('az-val').textContent =
-        parseFloat(d.meanZ).toFixed(2);
-
-      updateSpeedo(spd);
-      updateMap(lat, lon);
-      updateBehavior(d.behavior || 'Normal');
-      addLog(d.timestamp, spd, d.behavior || 'Normal');
+      if (!isNaN(lat) && !isNaN(lon)) {
+        marker.setLatLng([lat, lon]);
+        map.panTo([lat, lon]);
+      }
     });
 }
 
-  setInterval(fetchData, 2000);
-  fetchData();
+// =========================
+// TRIP LOGS
+// =========================
+async function fetchTripLogs() {
+  const res = await fetch('/logs');
+  const logs = await res.json();
+
+  let html = "";
+
+  logs.forEach(log => {
+    html += `
+      <div style="border:1px solid #ccc; margin:10px; padding:10px;">
+        <b>Start:</b> ${log.start}<br>
+        <b>End:</b> ${log.end}<br>
+        <b>Duration:</b> ${log.duration.toFixed(2)} min<br>
+        <b>Avg Speed:</b> ${log.avg_speed.toFixed(2)} km/h
+      </div>
+    `;
+  });
+
+  document.getElementById("tripLogs").innerHTML = html;
+}
+
+// =========================
+// INTERVALS
+// =========================
+setInterval(fetchData, 2000);
+setInterval(fetchTripLogs, 5000);
+
 </script>
+
 </body>
 </html>
+

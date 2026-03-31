@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS trips (
 conn.commit()
 
 # =========================
-# INPUT FORMAT
+# INPUT
 # =========================
 class SensorData(BaseModel):
     ax: float
@@ -52,8 +52,7 @@ latest_data = {
     "meanZ": 0,
     "speed": 0,
     "lat": 0,
-    "lon": 0,
-    "behavior": "Normal"
+    "lon": 0
 }
 
 trip_active = False
@@ -61,7 +60,6 @@ trip_start_time = None
 last_moving_time = None
 speed_buffer = []
 
-# Sliding window
 window_size = 10
 acc_buffer = []
 
@@ -71,16 +69,15 @@ acc_buffer = []
 @app.post("/predict")
 def predict(data: SensorData):
 
-    global latest_data, trip_active, trip_start_time, last_moving_time, speed_buffer, acc_buffer
+    global latest_data, trip_active, trip_start_time
+    global last_moving_time, speed_buffer, acc_buffer
 
     ax, ay, az = data.ax, data.ay, data.az
     speed, lat, lon = data.speed, float(data.lat), float(data.lon)
 
     now = datetime.now()
 
-    # =========================
-    # SLIDING WINDOW MEAN
-    # =========================
+    # Sliding window
     acc_buffer.append((ax, ay, az))
     if len(acc_buffer) > window_size:
         acc_buffer.pop(0)
@@ -88,28 +85,6 @@ def predict(data: SensorData):
     meanX = sum(a[0] for a in acc_buffer) / len(acc_buffer)
     meanY = sum(a[1] for a in acc_buffer) / len(acc_buffer)
     meanZ = sum(a[2] for a in acc_buffer) / len(acc_buffer)
-
-    # =========================
-    # NORMAL CONDITION (CRITICAL FIX)
-    # =========================
-    if abs(meanX) < 0.5 and abs(meanY) < 0.5:
-        behavior = "Normal"
-    else:
-        X = np.array([[meanX, meanY, meanZ]])
-        pred = model.predict(X)[0]
-
-        label_map = {
-            1: "Acceleration",
-            2: "Right Turn",
-            3: "Left Turn",
-            4: "Braking"
-        }
-
-        behavior = label_map.get(pred, "Normal")
-
-        # Optional aggressive tagging
-        if behavior in ["Acceleration", "Braking"] and abs(meanX) > 2:
-            behavior = "Aggressive"
 
     # =========================
     # TRIP START
@@ -124,14 +99,11 @@ def predict(data: SensorData):
     if trip_active:
         speed_buffer.append(speed)
 
-    # =========================
-    # UPDATE MOVING TIME
-    # =========================
     if speed > 10:
         last_moving_time = now
 
     # =========================
-    # TRIP END (10 min idle)
+    # TRIP END
     # =========================
     if trip_active and last_moving_time:
         idle_time = (now - last_moving_time).total_seconds()
@@ -166,11 +138,10 @@ def predict(data: SensorData):
         "meanZ": round(meanZ, 3),
         "speed": round(speed, 2),
         "lat": lat,
-        "lon": lon,
-        "behavior": behavior
+        "lon": lon
     })
 
-    return {"behavior": behavior}
+    return {"status": "ok"}
 
 # =========================
 # LIVE DATA
