@@ -1,4 +1,4 @@
-```python
+
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
@@ -95,4 +95,4 @@ def get_data():
 def dashboard():
     with open("dashboard.html", encoding="utf-8") as f:
         return f.read()
-```
+

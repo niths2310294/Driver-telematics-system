@@ -1,36 +1,57 @@
-```html
+
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Driver Dashboard</title>
+    <title>Driver Telematics</title>
 </head>
 <body style="text-align:center; font-family: Arial;">
 
-    <h1>🚗 Driver Behavior Dashboard</h1>
+<h1>🚗 Driver Telematics Dashboard</h1>
 
-    <h2 id="prediction">Loading...</h2>
+<h2 id="behavior">Loading...</h2>
 
-    <p id="x"></p>
-    <p id="y"></p>
-    <p id="z"></p>
+<p id="time"></p>
+
+<h3>📊 Acceleration</h3>
+<p id="x"></p>
+<p id="y"></p>
+<p id="z"></p>
+
+<h3>🚀 Speed</h3>
+<p id="speed"></p>
+
+<h3>📍 Location</h3>
+<p id="lat"></p>
+<p id="lon"></p>
 
 <script>
 async function fetchData() {
     const res = await fetch('/data');
     const data = await res.json();
 
-    document.getElementById("prediction").innerText =
-        "Prediction: " + data.prediction;
+    document.getElementById("behavior").innerText =
+        "Behavior: " + data.behavior;
+
+    document.getElementById("time").innerText =
+        "Time: " + data.timestamp;
 
     document.getElementById("x").innerText = "MeanX: " + data.meanX;
     document.getElementById("y").innerText = "MeanY: " + data.meanY;
     document.getElementById("z").innerText = "MeanZ: " + data.meanZ;
+
+    document.getElementById("speed").innerText =
+        "Speed: " + data.speed + " km/h";
+
+    document.getElementById("lat").innerText =
+        "Latitude: " + data.lat;
+
+    document.getElementById("lon").innerText =
+        "Longitude: " + data.lon;
 }
 
-// refresh every 2 sec
 setInterval(fetchData, 2000);
 </script>
 
 </body>
 </html>
-```
+
