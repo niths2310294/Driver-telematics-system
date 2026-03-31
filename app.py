@@ -1,5 +1,5 @@
 ```python
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, send_file
 import joblib
 import numpy as np
 import os
@@ -7,9 +7,9 @@ import os
 app = Flask(__name__)
 
 # =========================
-# LOAD MODEL
+# LOAD MODEL (NO FOLDER)
 # =========================
-MODEL_PATH = os.path.join("model", "driver_model.pkl")
+MODEL_PATH = "driver_behavior_model_without_speed.pkl"
 model = joblib.load(MODEL_PATH)
 
 # =========================
@@ -23,14 +23,14 @@ latest_data = {
 }
 
 # =========================
-# DASHBOARD
+# DASHBOARD (HTML FILE)
 # =========================
 @app.route('/')
 def home():
-    return render_template("index.html", data=latest_data)
+    return send_file("dashboard.html")
 
 # =========================
-# ESP32 API
+# API FOR ESP32
 # =========================
 @app.route('/predict', methods=['POST'])
 def predict():
@@ -56,16 +56,26 @@ def predict():
         result = label_map.get(pred, "Unknown")
 
         latest_data = {
-            "meanX": round(meanX, 3),
-            "meanY": round(meanY, 3),
-            "meanZ": round(meanZ, 3),
+            "meanX": meanX,
+            "meanY": meanY,
+            "meanZ": meanZ,
             "prediction": result
         }
 
-        return jsonify({"prediction": result})
+        return jsonify({
+            "prediction": result,
+            "data": latest_data
+        })
 
     except Exception as e:
         return jsonify({"error": str(e)})
+
+# =========================
+# GET LATEST DATA (FOR DASHBOARD)
+# =========================
+@app.route('/data')
+def get_data():
+    return jsonify(latest_data)
 
 # =========================
 # HEALTH CHECK
@@ -75,7 +85,7 @@ def health():
     return "OK", 200
 
 # =========================
-# RUN (RENDER FIX)
+# RUN (RENDER)
 # =========================
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 10000))
