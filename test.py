@@ -1,14 +1,14 @@
-
 import requests
 import time
 
-URL = "https://driver-telematics-system.onrender.com/predict"   # 🔥 change this
+URL = "https://driver-telematics-system.onrender.com/predict"   # 🔥 CHANGE THIS
 
 lat = 13.0827
 lon = 80.2707
 
 def send(ax, ay, az, speed):
     global lat, lon
+
     lat += 0.00005
     lon += 0.00005
 
@@ -26,35 +26,26 @@ def send(ax, ay, az, speed):
 print("🚨 HARSH TEST START")
 
 # =========================
-# HARD ACCELERATION
+# HARSH ACCELERATION
 # =========================
-print("🚀 Strong Acceleration")
-for _ in range(8):
-    send(3.5, 0.2, 9.5, 50)
+print("🚀 HARSH ACCELERATION")
+
+for _ in range(12):   # 12 sec → overrides window
+    send(3.5, 0.0, 9.6, 50)
+    time.sleep(1)
+
+# small gap
+for _ in range(3):
+    send(0.1, 0.0, 9.8, 30)
     time.sleep(1)
 
 # =========================
-# HARD BRAKING
+# HARSH BRAKING
 # =========================
-print("🛑 Strong Braking")
-for _ in range(8):
-    send(-4.0, 0.1, 9.8, 15)
+print("🛑 HARSH BRAKING")
+
+for _ in range(12):
+    send(-4.0, 0.0, 9.8, 10)
     time.sleep(1)
 
-# =========================
-# SHARP RIGHT TURN
-# =========================
-print("↪️ Sharp Right Turn")
-for _ in range(8):
-    send(0.2, -3.5, 9.6, 30)
-    time.sleep(1)
-
-# =========================
-# SHARP LEFT TURN
-# =========================
-print("↩️ Sharp Left Turn")
-for _ in range(8):
-    send(0.2, 3.5, 9.6, 30)
-    time.sleep(1)
-
-print("✅ HARSH TEST DONE")
+print("✅ TEST COMPLETE")
