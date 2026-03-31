@@ -1,85 +1,160 @@
-
+```html
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Driver Telematics</title>
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Driver Behavior Monitor</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+  <style>
+    body { font-family: 'Inter', sans-serif; background:#f4f6f9; margin:0; }
+
+    header {
+      background:#fff; border-bottom:1px solid #ddd;
+      padding:10px 20px; display:flex; justify-content:space-between;
+    }
+
+    .page { padding:15px; }
+
+    .metrics {
+      display:grid; grid-template-columns:repeat(5,1fr);
+      gap:10px; margin-bottom:15px;
+    }
+
+    .card {
+      background:#fff; padding:10px; border-radius:10px;
+      text-align:center;
+    }
+
+    .bottom {
+      display:grid; grid-template-columns:1fr 300px; gap:10px;
+    }
+
+    #map { height:350px; }
+
+    .log-card {
+      background:#fff; padding:10px; border-radius:10px;
+      overflow-y:auto; height:350px;
+    }
+  </style>
 </head>
 
-<body style="font-family: Arial; text-align:center;">
+<body>
 
-<h1>🚗 Driver Telematics Dashboard</h1>
+<header>
+  <div>🚗 Driver Behavior Monitor</div>
+  <div>Live</div>
+</header>
 
-<h3>Live Data</h3>
-<p id="time"></p>
-<p id="speed"></p>
-<p id="coords"></p>
+<div class="page">
 
-<div id="map" style="height:300px;"></div>
+  <!-- METRICS -->
+  <div class="metrics">
+    <div class="card">Accel X<br><b id="ax-val">0</b></div>
+    <div class="card">Accel Y<br><b id="ay-val">0</b></div>
+    <div class="card">Accel Z<br><b id="az-val">0</b></div>
+    <div class="card">Speed<br><b id="spd-val">0</b> km/h</div>
+    <div class="card">Time<br><b id="ts-val">--</b></div>
+  </div>
 
-<h3>📜 Trip History</h3>
-<div id="tripLogs"></div>
+  <!-- BOTTOM -->
+  <div class="bottom">
+
+    <!-- MAP -->
+    <div>
+      <h3>📍 Location</h3>
+      <div id="map"></div>
+      <p id="map-coords">--</p>
+    </div>
+
+    <!-- TRIP LOG -->
+    <div class="log-card">
+      <h3>📜 Trip History</h3>
+      <div id="tripLogs"></div>
+    </div>
+
+  </div>
+
+</div>
 
 <script>
 // =========================
-// MAP SETUP
+// MAP INIT (ONLY ONCE)
 // =========================
 var map = L.map('map').setView([13.0827, 80.2707], 13);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
 var marker = L.marker([13.0827, 80.2707]).addTo(map);
+var path = [];
+var line = L.polyline(path, { color: '#38bdf8', weight: 3 }).addTo(map);
 
 // =========================
-// LIVE DATA
+// UPDATE MAP
+// =========================
+function updateMap(lat, lon) {
+  lat = parseFloat(lat);
+  lon = parseFloat(lon);
+
+  if (isNaN(lat) || isNaN(lon)) return;
+
+  marker.setLatLng([lat, lon]);
+  path.push([lat, lon]);
+  line.setLatLngs(path);
+  map.panTo([lat, lon]);
+
+  document.getElementById("map-coords").innerText =
+    lat.toFixed(4) + ", " + lon.toFixed(4);
+}
+
+// =========================
+// FETCH LIVE DATA
 // =========================
 function fetchData() {
   fetch('/data')
     .then(r => r.json())
     .then(d => {
 
-      let lat = parseFloat(d.lat);
-      let lon = parseFloat(d.lon);
-      let spd = parseFloat(d.speed);
+      let spd = parseFloat(d.speed) || 0;
 
-      document.getElementById("time").innerText =
-        "Time: " + d.timestamp;
+      document.getElementById("ax-val").innerText = d.meanX;
+      document.getElementById("ay-val").innerText = d.meanY;
+      document.getElementById("az-val").innerText = d.meanZ;
 
-      document.getElementById("speed").innerText =
-        "Speed: " + spd.toFixed(1) + " km/h";
+      document.getElementById("spd-val").innerText = spd.toFixed(1);
+      document.getElementById("ts-val").innerText = d.timestamp;
 
-      document.getElementById("coords").innerText =
-        "Lat: " + lat.toFixed(4) + " Lon: " + lon.toFixed(4);
-
-      if (!isNaN(lat) && !isNaN(lon)) {
-        marker.setLatLng([lat, lon]);
-        map.panTo([lat, lon]);
-      }
+      updateMap(d.lat, d.lon);
     });
 }
 
 // =========================
-// TRIP LOGS
+// FETCH TRIP LOGS (SQLITE)
 // =========================
-async function fetchTripLogs() {
-  const res = await fetch('/logs');
-  const logs = await res.json();
+function fetchTripLogs() {
+  fetch('/logs')
+    .then(r => r.json())
+    .then(logs => {
 
-  let html = "";
+      let html = "";
 
-  logs.forEach(log => {
-    html += `
-      <div style="border:1px solid #ccc; margin:10px; padding:10px;">
-        <b>Start:</b> ${log.start}<br>
-        <b>End:</b> ${log.end}<br>
-        <b>Duration:</b> ${log.duration.toFixed(2)} min<br>
-        <b>Avg Speed:</b> ${log.avg_speed.toFixed(2)} km/h
-      </div>
-    `;
-  });
+      logs.forEach(log => {
+        html += `
+          <div style="border:1px solid #ddd; padding:8px; margin:5px;">
+            <b>Start:</b> ${log.start}<br>
+            <b>End:</b> ${log.end}<br>
+            <b>Duration:</b> ${log.duration.toFixed(2)} min<br>
+            <b>Avg Speed:</b> ${log.avg_speed.toFixed(2)} km/h
+          </div>
+        `;
+      });
 
-  document.getElementById("tripLogs").innerHTML = html;
+      document.getElementById("tripLogs").innerHTML = html;
+    });
 }
 
 // =========================
@@ -88,8 +163,11 @@ async function fetchTripLogs() {
 setInterval(fetchData, 2000);
 setInterval(fetchTripLogs, 5000);
 
+fetchData();
+fetchTripLogs();
+
 </script>
 
 </body>
 </html>
-
+```
