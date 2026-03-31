@@ -9,7 +9,7 @@ app = Flask(__name__)
 # =========================
 # LOAD MODEL (NO FOLDER)
 # =========================
-MODEL_PATH = "driver_behavior_model_without_speed.pkl"
+MODEL_PATH = "driver_model.pkl"
 model = joblib.load(MODEL_PATH)
 
 # =========================
