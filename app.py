@@ -79,7 +79,7 @@ def predict(data: SensorData):
     now = datetime.now()
 
     # =========================
-    # WINDOW MEAN
+    # SLIDING WINDOW MEAN
     # =========================
     acc_buffer.append((ax, ay, az))
     if len(acc_buffer) > window_size:
@@ -90,19 +90,26 @@ def predict(data: SensorData):
     meanZ = sum(a[2] for a in acc_buffer) / len(acc_buffer)
 
     # =========================
-    # MODEL
+    # NORMAL CONDITION (CRITICAL FIX)
     # =========================
-    X = np.array([[meanX, meanY, meanZ]])
-    pred = model.predict(X)[0]
+    if abs(meanX) < 0.5 and abs(meanY) < 0.5:
+        behavior = "Normal"
+    else:
+        X = np.array([[meanX, meanY, meanZ]])
+        pred = model.predict(X)[0]
 
-    label_map = {
-        1: "Normal",
-        2: "Warning",
-        3: "Aggressive",
-        4: "Aggressive"
-    }
+        label_map = {
+            1: "Acceleration",
+            2: "Right Turn",
+            3: "Left Turn",
+            4: "Braking"
+        }
 
-    behavior = label_map.get(pred, "Normal")
+        behavior = label_map.get(pred, "Normal")
+
+        # Optional aggressive tagging
+        if behavior in ["Acceleration", "Braking"] and abs(meanX) > 2:
+            behavior = "Aggressive"
 
     # =========================
     # TRIP START
@@ -124,7 +131,7 @@ def predict(data: SensorData):
         last_moving_time = now
 
     # =========================
-    # TRIP END
+    # TRIP END (10 min idle)
     # =========================
     if trip_active and last_moving_time:
         idle_time = (now - last_moving_time).total_seconds()
@@ -173,7 +180,7 @@ def get_data():
     return latest_data
 
 # =========================
-# LOGS
+# TRIP LOGS
 # =========================
 @app.get("/logs")
 def get_logs():
