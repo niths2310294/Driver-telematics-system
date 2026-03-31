@@ -1,0 +1,36 @@
+```html
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Driver Dashboard</title>
+</head>
+<body style="text-align:center; font-family: Arial;">
+
+    <h1>🚗 Driver Behavior Dashboard</h1>
+
+    <h2 id="prediction">Loading...</h2>
+
+    <p id="x"></p>
+    <p id="y"></p>
+    <p id="z"></p>
+
+<script>
+async function fetchData() {
+    const res = await fetch('/data');
+    const data = await res.json();
+
+    document.getElementById("prediction").innerText =
+        "Prediction: " + data.prediction;
+
+    document.getElementById("x").innerText = "MeanX: " + data.meanX;
+    document.getElementById("y").innerText = "MeanY: " + data.meanY;
+    document.getElementById("z").innerText = "MeanZ: " + data.meanZ;
+}
+
+// refresh every 2 sec
+setInterval(fetchData, 2000);
+</script>
+
+</body>
+</html>
+```
