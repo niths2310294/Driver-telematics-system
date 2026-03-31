@@ -221,18 +221,42 @@
   }
 
   /* LOG */
-  function addLog(ts, spd, pred) {
-    var list = document.getElementById('log-list');
-    var cls  = CLS[pred] || 'normal';
-    var row  = document.createElement('div');
-    row.className = 'log-row';
-    row.innerHTML =
-      '<span class="log-ts">' + ts + '</span>' +
-      '<span class="log-spd">' + spd.toFixed(1) + ' km/h</span>' +
-      '<span class="log-badge lb-' + cls + '">' + pred + '</span>';
-    list.prepend(row);
-    while (list.children.length > 80) list.removeChild(list.lastChild);
+  /* LOG → TRIP HISTORY */
+function updateTripLogs(logs) {
+  var list = document.getElementById('log-list');
+  list.innerHTML = "";
+
+  if (logs.length === 0) {
+    list.innerHTML = "<div class='log-row'>No trips yet</div>";
+    return;
   }
+
+  logs.forEach((log, index) => {
+
+    var row = document.createElement('div');
+    row.className = 'log-row';
+
+    // highlight latest trip
+    if (index === 0) {
+      row.style.background = "#f0fdf4";
+    }
+
+    row.innerHTML =
+      '<span class="log-ts">' + log.start + '</span>' +
+      '<span class="log-spd">' + log.duration.toFixed(1) + 'm</span>' +
+      '<span class="log-badge lb-normal">Avg ' + log.avg_speed.toFixed(1) + '</span>';
+
+    list.appendChild(row);
+  });
+}
+
+function fetchTripLogs() {
+  fetch('/logs')
+    .then(r => r.json())
+    .then(logs => {
+      updateTripLogs(logs);
+    });
+}
 
   /* FETCH */
   function fetchData() {
@@ -260,10 +284,12 @@
       updateSpeedo(spd);
       updateMap(lat, lon);
       updateBehavior(d.behavior || 'Normal');
-      addLog(d.timestamp, spd, d.behavior || 'Normal');
+      
     });
 }
 
+  setInterval(fetchTripLogs, 5000);
+  fetchTripLogs();
   setInterval(fetchData, 2000);
   fetchData();
 </script>
