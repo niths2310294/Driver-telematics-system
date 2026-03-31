@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS trips (
 conn.commit()
 
 # =========================
-# INPUT
+# INPUT FORMAT
 # =========================
 class SensorData(BaseModel):
     ax: float
@@ -52,7 +52,8 @@ latest_data = {
     "meanZ": 0,
     "speed": 0,
     "lat": 0,
-    "lon": 0
+    "lon": 0,
+    "behavior": "Normal"
 }
 
 trip_active = False
@@ -77,7 +78,9 @@ def predict(data: SensorData):
 
     now = datetime.now()
 
-    # Sliding window
+    # =========================
+    # SLIDING WINDOW
+    # =========================
     acc_buffer.append((ax, ay, az))
     if len(acc_buffer) > window_size:
         acc_buffer.pop(0)
@@ -85,6 +88,38 @@ def predict(data: SensorData):
     meanX = sum(a[0] for a in acc_buffer) / len(acc_buffer)
     meanY = sum(a[1] for a in acc_buffer) / len(acc_buffer)
     meanZ = sum(a[2] for a in acc_buffer) / len(acc_buffer)
+
+    # =========================
+    # LEVEL 1 (RULES)
+    # =========================
+    if abs(meanY) > 1.5:
+        behavior = "Sharp Left Turn" if meanY > 0 else "Sharp Right Turn"
+
+    elif abs(meanY) > 0.4:
+        behavior = "Left Turn" if meanY > 0 else "Right Turn"
+
+    elif abs(meanX) < 0.5 and abs(meanY) < 0.5:
+        behavior = "Normal"
+
+    # =========================
+    # LEVEL 2 (ML)
+    # =========================
+    else:
+        X = np.array([[meanX, meanY, meanZ]])
+        pred = model.predict(X)[0]
+
+        label_map = {
+            1: "Acceleration",
+            2: "Right Turn",
+            3: "Left Turn",
+            4: "Braking"
+        }
+
+        behavior = label_map.get(pred, "Normal")
+
+        # Aggressive tag
+        if behavior in ["Acceleration", "Braking"] and abs(meanX) > 2:
+            behavior = "Aggressive"
 
     # =========================
     # TRIP START
@@ -108,7 +143,7 @@ def predict(data: SensorData):
     if trip_active and last_moving_time:
         idle_time = (now - last_moving_time).total_seconds()
 
-        if idle_time > 600:
+        if idle_time > 600:   # change to 10 for testing
             trip_active = False
             end_time = now
 
@@ -138,10 +173,11 @@ def predict(data: SensorData):
         "meanZ": round(meanZ, 3),
         "speed": round(speed, 2),
         "lat": lat,
-        "lon": lon
+        "lon": lon,
+        "behavior": behavior
     })
 
-    return {"status": "ok"}
+    return {"behavior": behavior}
 
 # =========================
 # LIVE DATA
@@ -151,7 +187,7 @@ def get_data():
     return latest_data
 
 # =========================
-# TRIP LOGS
+# LOGS
 # =========================
 @app.get("/logs")
 def get_logs():
