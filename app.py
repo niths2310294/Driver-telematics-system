@@ -92,17 +92,26 @@ def predict(data: SensorData):
     # =========================
     # LEVEL 1 (RULES)
     # =========================
-    if abs(meanY) > 1.5:
+    # =========================
+# LEVEL 1: ACCEL/BRAKE FIRST
+# =========================
+    if abs(meanX) > 2:
+        if meanX > 0:
+            behavior = "Aggressive Acceleration"
+        else:
+            behavior = "Aggressive Braking"
+
+    # =========================
+    # LEVEL 2: TURN DETECTION
+    # =========================
+    elif abs(meanY) > 1.5:
         behavior = "Sharp Left Turn" if meanY > 0 else "Sharp Right Turn"
 
     elif abs(meanY) > 0.4:
         behavior = "Left Turn" if meanY > 0 else "Right Turn"
 
-    elif abs(meanX) < 0.5 and abs(meanY) < 0.5:
-        behavior = "Normal"
-
     # =========================
-    # LEVEL 2 (ML)
+    # LEVEL 3: NORMAL / ML
     # =========================
     else:
         X = np.array([[meanX, meanY, meanZ]])
@@ -116,10 +125,6 @@ def predict(data: SensorData):
         }
 
         behavior = label_map.get(pred, "Normal")
-
-        # Aggressive tag
-        if behavior in ["Acceleration", "Braking"] and abs(meanX) > 2:
-            behavior = "Aggressive"
 
     # =========================
     # TRIP START
